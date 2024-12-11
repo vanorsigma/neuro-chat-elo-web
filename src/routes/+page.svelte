@@ -8,7 +8,8 @@
   import Menu from '$lib/menu.svelte';
   import Burger from '$lib/burger.svelte';
   import type { Readable } from 'svelte/store';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
+  import { EloWebSocket } from '$lib/websocket';
 
   let showRankingsLoading = false;
   let allowRankings = false; // this forces the loading text to appear
@@ -89,17 +90,21 @@
         } as RevealMetadata;
       })
   );
+
+  onMount(() => {
+    const ws = new EloWebSocket();
+    // TODO: from websockets update leaderboards
+    ws.setOnChangesMessage((message) => {
+      console.log(message);
+    });
+    ws.setOnInitialMessage((message) => {
+      console.log(message);
+    });
+  });
 </script>
 
 <svg width="0" height="0">
   <defs>
-    <!-- Ironmouse color -->
-    <linearGradient x1="0%" y1="0%" x2="100%" y2="0%" id="mx-gradient-ff33ff-1-660066-1-e-0">
-      <stop offset="0%" style="stop-color: rgb(255, 51, 255); stop-opacity: 1;" />
-      <stop offset="100%" style="stop-color: rgb(102, 0, 102); stop-opacity: 1;" />
-    </linearGradient>
-    <!-- End of Ironmouse color -->
-
     <linearGradient x1="0%" y1="0%" x2="100%" y2="0%" id="mx-gradient-ffd700-1-ffb570-1-e-0">
       <stop offset="0%" style="stop-color: rgb(255, 215, 0); stop-opacity: 1;" />
       <stop offset="100%" style="stop-color: rgb(255, 181, 112); stop-opacity: 1;" />
