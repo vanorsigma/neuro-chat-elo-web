@@ -3,72 +3,44 @@
   import LoadableFlexContainer from '$lib/loadableFlexContainer.svelte';
   import RevealCards from '$lib/revealCards.svelte';
   import type { RevealMetadata } from '$lib/revealMetadata';
-  import {
-    overallRank,
-    chatOnlyRank,
-    copypastaRank,
-    nonvipsRank,
-    bitsRank,
-    subsRank,
-    discordRank,
-    partnersRank,
-    bilibiliRank,
-    adventureTheFarmRank,
-    emoteRank,
-    ironmousePixelRank,
-    pxlsRank,
-    ironmouseChatRank,
-    cookiesRank
-  } from '$lib/ranks';
+  import { ranksMap, type LeaderboardInfoWithCategory } from '$lib/ranks';
   import { sanitizeString } from '$lib';
   import Menu from '$lib/menu.svelte';
   import Burger from '$lib/burger.svelte';
-  import { onMount } from 'svelte';
+  import type { Readable } from 'svelte/store';
+  import { onDestroy } from 'svelte';
 
   let showRankingsLoading = false;
   let allowRankings = false; // this forces the loading text to appear
   let activeIndex =
-    Number(sanitizeString(new URL(window.location.href).searchParams.get('index'))) || 0;
-  let rankingTitles = [
-    'Overall',
-    'Non-VIPS',
-    'Only Chat Messages',
-    'Copypasta Leaders',
-    'Bits',
-    'Subs',
-    'Partners',
-    '#livestream-chat',
-    'bilibili',
-    'Top Emotes',
-    'Neuro Adventures - The Farm',
-    'Ironmouse Subathon Canvas',
-    'Casual pxls',
-    'Ironmouse Canvas Chat',
-    'Cookie'
-  ];
-  $: ranking = [
-    $overallRank,
-    $nonvipsRank,
-    $chatOnlyRank,
-    $copypastaRank,
-    $bitsRank,
-    $subsRank,
-    $partnersRank,
-    $discordRank,
-    $bilibiliRank,
-    $emoteRank,
-    $adventureTheFarmRank,
-    $ironmousePixelRank,
-    $pxlsRank,
-    $ironmouseChatRank,
-    $cookiesRank
-  ];
+    sanitizeString(new URL(window.location.href).searchParams.get('index')) || 'overall';
 
-  $: allRanksLoaded = ranking.every((r) => r.ranks.length > 0);
+  let rankings: { [key: string]: LeaderboardInfoWithCategory } = {};
+  $: allRanksLoaded = Object.values(rankings).every((r) => r.info.ranks.length > 0);
+
+  function callbackForStore(key: string, value: LeaderboardInfoWithCategory) {
+    rankings[key] = value;
+  }
+
+  function subscribeStore(
+    store: Readable<LeaderboardInfoWithCategory>,
+    callback: (value: LeaderboardInfoWithCategory) => void
+  ) {
+    let unsubscribe = store.subscribe(callback);
+    onDestroy(() => {
+      unsubscribe();
+    });
+  }
+
+  $: {
+    for (let [key, value] of ranksMap.entries()) {
+      subscribeStore(value, (v) => callbackForStore(key, v));
+    }
+  }
 
   let menuAppear = false;
 
-  function navigatePage(page: number) {
+  function navigatePage(page: string) {
     activeIndex = page;
   }
 
@@ -103,13 +75,20 @@
     }, 100);
   }
 
-  $: metadatas = ranking.map((leaderboardInfo, idx) => {
-    return {
-      avatarName: leaderboardInfo.ranks[0]?.username,
-      avatarUrl: leaderboardInfo.ranks[0]?.avatar,
-      leaderboardName: rankingTitles[idx]
-    } as RevealMetadata;
-  });
+  $: metadatas = Array.from(
+    Object.entries(rankings)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      .filter(([_, leaderboardInfo]) => {
+        return leaderboardInfo.info.ranks.length !== 0;
+      })
+      .map(([title, leaderboardInfo]) => {
+        return {
+          avatarName: leaderboardInfo.info.ranks[0]?.username,
+          avatarUrl: leaderboardInfo.info.ranks[0]?.avatar,
+          leaderboardName: title
+        } as RevealMetadata;
+      })
+  );
 </script>
 
 <svg width="0" height="0">
@@ -167,26 +146,27 @@
       showRankingsLoading = false;
     }}
   >
-    {#each ranking as leaderboardInfo, index}
+    {#each Object.entries(rankings) as [title, leaderboardInfo]}
       <div
-        class="flex flex-col px-5 w-full h-full md:h-full md:h-[90%] {index === activeIndex
+        class="flex flex-col px-5 w-full h-full md:h-full md:h-[90%] {leaderboardInfo.id ===
+        activeIndex
           ? ''
           : 'hidden'}"
       >
         <h1 class="text-3xl flex-none font-bold my-5 md:my-0 text-center">
-          {rankingTitles[index]}
+          {title}
         </h1>
         <RankingCard
-          isActive={index === activeIndex}
+          isActive={leaderboardInfo.id === activeIndex}
           bind:userSearchTextValue
-          rankingInfo={leaderboardInfo.ranks}
+          rankingInfo={leaderboardInfo.info.ranks}
         />
-        <p>Generated at: {leaderboardInfo.generatedAt.toLocaleString()} (your timezone)</p>
+        <p>Generated at: {leaderboardInfo.info.generatedAt.toLocaleString()} (your timezone)</p>
       </div>
     {/each}
   </LoadableFlexContainer>
 {/if}
 
-{#if !showRankingsLoading && !allowRankings && ranking[0]?.ranks.length > 0 && allRanksLoaded}
+{#if !showRankingsLoading && !allowRankings && Object.values(rankings)[Object.values(rankings).length - 1]?.info.ranks.length > 0 && allRanksLoaded}
   <RevealCards revealMetadatas={metadatas} allAnimationsDone={onAnimationDone} />
 {/if}

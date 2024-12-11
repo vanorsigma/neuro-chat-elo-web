@@ -1,8 +1,7 @@
 // place files you want to import through the `$lib` alias in this folder.
 
-
 // From https://stackoverflow.com/a/12034334
-const entityMap = {
+const entityMap: { [key: string]: string } = {
   '&': '&amp;',
   '<': '&lt;',
   '>': '&gt;',
@@ -20,8 +19,12 @@ const entityMap = {
  * @param str {string} The string to sanitize
  * @returns A sanitized string
  */
-export function sanitizeString(str: string): string {
-  return String(str).replace(/[&<>"'`=\/]/g, function (s) {
+export function sanitizeString(str: string | null): string {
+  if (!str) {
+    return '';
+  }
+
+  return String(str).replace(/[&<>"'`=/]/g, function (s) {
     return entityMap[s];
   });
 }

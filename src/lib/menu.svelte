@@ -1,40 +1,53 @@
 <script lang="ts">
   import MenuItem from './menuitem.svelte';
   import { fly } from 'svelte/transition';
+  import { ranksMap, type LeaderboardInfoWithCategory } from './ranks';
+  import type { Readable } from 'svelte/store';
+  import { onDestroy } from 'svelte';
 
-  const twitchMenuItemMapping = {
-    Overall: 0,
-    'Non-VIPS': 1,
-    'Chat Only': 2,
-    Bits: 4,
-    Subs: 5,
-    'Partner Only': 6,
-    'Top Emotes': 9
-  };
+  export let itemClicked: (arg0: string) => void;
+  export let selectedPage: string;
 
-  const discordMenuItemMapping = {
-    '#livestream-chat': 7,
-    'Casual Canvas': 12,
-    Cookies: 14
-  };
+  let rankings: { [key: string]: LeaderboardInfoWithCategory } = {};
 
-  const bilibiliMenuItemMapping = {
-    bilibili: 8
-  };
+  function callbackForStore(key: string, value: LeaderboardInfoWithCategory) {
+    rankings[key] = value;
+  }
 
-  const communityDerivedMapping = {
-    adventureTheFarm: 10
-  };
+  function subscribeStore(
+    store: Readable<LeaderboardInfoWithCategory>,
+    callback: (value: LeaderboardInfoWithCategory) => void
+  ) {
+    let unsubscribe = store.subscribe(callback);
+    onDestroy(() => {
+      unsubscribe();
+    });
+  }
 
-  const specialEventsMapping = {
-    'Ironmouse Canvas': 11,
-    'Ironmouse Canvas Chat': 13
-  };
+  $: {
+    for (let [key, value] of ranksMap.entries()) {
+      subscribeStore(value, (v) => callbackForStore(key, v));
+    }
+  }
 
-  export let itemClicked: (arg0: number) => void;
-  export let selectedPage: number;
+  $: categoryToLeaderboards = Object.entries(rankings).reduce(
+    (
+      acc: Map<string, { name: string; infoWithCategory: LeaderboardInfoWithCategory }[]>,
+      [key, value]
+    ) => {
+      acc.set(value.category, [
+        ...(acc.get(value.category) ?? []),
+        {
+          name: key,
+          infoWithCategory: value
+        }
+      ]);
+      return acc;
+    },
+    new Map()
+  );
 
-  function onMenuItemClick(page: number) {
+  function onMenuItemClick(page: string) {
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.set('index', `${page}`);
     window.history.pushState(
@@ -53,56 +66,18 @@
   <p class="text-4xl">Menu</p>
   <br />
 
-  <p class="text-xl">Twitch</p>
-  {#each Object.entries(twitchMenuItemMapping) as menuItem}
-    <MenuItem
-      text={menuItem[0]}
-      onClick={() => onMenuItemClick(menuItem[1])}
-      selected={selectedPage == menuItem[1]}
-    />
+  {#each categoryToLeaderboards.entries() as [category, leaderboardsWithNames]}
+    <p class="text-xl">{category}</p>
+    {#each leaderboardsWithNames as menuItem}
+      <MenuItem
+        text={menuItem.name}
+        onClick={() => onMenuItemClick(menuItem.infoWithCategory.id)}
+        selected={selectedPage == menuItem.infoWithCategory.id}
+      />
+    {/each}
+    <br />
   {/each}
 
-  <br />
-  <p class="text-xl">Discord</p>
-  {#each Object.entries(discordMenuItemMapping) as menuItem}
-    <MenuItem
-      text={menuItem[0]}
-      onClick={() => onMenuItemClick(menuItem[1])}
-      selected={selectedPage == menuItem[1]}
-    />
-  {/each}
-
-  <br />
-  <p class="text-xl">Bilibili</p>
-  {#each Object.entries(bilibiliMenuItemMapping) as menuItem}
-    <MenuItem
-      text={menuItem[0]}
-      onClick={() => onMenuItemClick(menuItem[1])}
-      selected={selectedPage == menuItem[1]}
-    />
-  {/each}
-
-  <br />
-  <p class="text-xl">Community Derived Mapping</p>
-  {#each Object.entries(communityDerivedMapping) as menuItem}
-    <MenuItem
-      text={menuItem[0]}
-      onClick={() => onMenuItemClick(menuItem[1])}
-      selected={selectedPage == menuItem[1]}
-    />
-  {/each}
-
-  <br />
-  <p class="text-xl">Special Events</p>
-  {#each Object.entries(specialEventsMapping) as menuItem}
-    <MenuItem
-      text={menuItem[0]}
-      onClick={() => onMenuItemClick(menuItem[1])}
-      selected={selectedPage == menuItem[1]}
-    />
-  {/each}
-
-  <br />
   <p class="flex-none text-center hidden sm:block">
     Public Alpha. Please ping @vanorsigma for feedback
   </p>
