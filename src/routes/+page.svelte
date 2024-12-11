@@ -17,7 +17,8 @@
     emoteRank,
     ironmousePixelRank,
     pxlsRank,
-    ironmouseChatRank
+    ironmouseChatRank,
+    cookiesRank
   } from '$lib/ranks';
   import { sanitizeString } from '$lib';
   import Menu from '$lib/menu.svelte';
@@ -42,7 +43,8 @@
     'Neuro Adventures - The Farm',
     'Ironmouse Subathon Canvas',
     'Casual pxls',
-    'Ironmouse Canvas Chat'
+    'Ironmouse Canvas Chat',
+    'Cookie'
   ];
   $: ranking = [
     $overallRank,
@@ -58,7 +60,8 @@
     $adventureTheFarmRank,
     $ironmousePixelRank,
     $pxlsRank,
-    $ironmouseChatRank
+    $ironmouseChatRank,
+    $cookiesRank
   ];
 
   $: allRanksLoaded = ranking.every((r) => r.ranks.length > 0);
@@ -170,7 +173,7 @@
           ? ''
           : 'hidden'}"
       >
-        <h1 class="text-on-bg text-3xl flex-none font-bold my-5 md:my-0 text-center">
+        <h1 class="text-3xl flex-none font-bold my-5 md:my-0 text-center">
           {rankingTitles[index]}
         </h1>
         <RankingCard
@@ -187,11 +190,3 @@
 {#if !showRankingsLoading && !allowRankings && ranking[0]?.ranks.length > 0 && allRanksLoaded}
   <RevealCards revealMetadatas={metadatas} allAnimationsDone={onAnimationDone} />
 {/if}
-
-<div class="snowflakes">
-  {#each [...Array(10).keys()] as i}
-    <div class="snowflake">
-      <img src="./bat.gif" alt="bat" />
-    </div>
-  {/each}
-</div>

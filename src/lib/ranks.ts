@@ -94,3 +94,4 @@ export const emoteRank = readable(DEFAULT_LEADERBOARD_INFO, makeRankingInfo('top
 export const ironmousePixelRank = readable(DEFAULT_LEADERBOARD_INFO, makeRankingInfo('ironmouse_pxls.bin'));
 export const pxlsRank = readable(DEFAULT_LEADERBOARD_INFO, makeRankingInfo('casual_pxls.bin'));
 export const ironmouseChatRank = readable(DEFAULT_LEADERBOARD_INFO, makeRankingInfo('ironmousecanvaschat.bin'));
+export const cookiesRank = readable(DEFAULT_LEADERBOARD_INFO, makeRankingInfo('cookies.bin'));
