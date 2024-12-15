@@ -1,171 +1,87 @@
-import { readable } from 'svelte/store';
+import { readable, writable, type Updater, derived } from 'svelte/store';
 import axios from 'axios';
 import { BadgeInformation, LeaderboardExport } from '../gen/leaderboardExportTypes';
+import { EloWebSocket, type RankingInformation } from './websocket';
+import { RankingCoordinator, type ExpandedAuthorInformation } from './rankingCoordinator';
 
-export interface Badge {
-  description: string;
-  image_url: string;
+export interface FullRankingInformation {
+  author: ExpandedAuthorInformation,
+  elo: number
 }
 
-export interface RankingInfo {
-  id: string;
-  rank: number;
-  elo: number;
-  username: string;
-  delta: number;
-  avatar: string;
-  badges: Badge[];
+export interface Leaderboard {
+  name: string;
+  data: FullRankingInformation[];
 }
 
-export interface LeaderboardInfo {
-  ranks: RankingInfo[];
-  generatedAt: Date;
+export type LeaderboardWithCategory = Leaderboard & { category: string };
+
+export interface WSLeaderboard {
+  name: string;
+  data: RankingInformation[];
 }
 
-export interface LeaderboardInfoWithCategory {
-  id: string;
-  info: LeaderboardInfo;
-  category: string;
-}
-
-const DEFAULT_LEADERBOARD_INFO: LeaderboardInfoWithCategory = {
-  id: 'default',
-  info: {
-    ranks: [],
-    generatedAt: new Date(0)
-  },
-  category: ''
-};
-
-function makeRankingInfo(identifier: string, category: string, path: string) {
-  return (set: (arg0: LeaderboardInfoWithCategory) => void) => {
-    axios.get(`./${path}`, { responseType: 'arraybuffer' }).then((result) => {
-      if (result.status !== 200) {
-        console.error(`Cannot fetch leaderboard from ${path}`);
-        return;
-      }
-      try {
-        const data = new Uint8Array(result.data);
-        const leaderboard = LeaderboardExport.decode(data);
-        const rankingInfo = mapLeaderboardToRanking(identifier, category, leaderboard);
-        set(rankingInfo);
-      } catch (error) {
-        handleError(path, error as Error);
-      }
-    });
-    return () => {};
-  };
-}
-
-function mapLeaderboardToRanking(
-  identifier: string,
-  category: string,
-  leaderboard: LeaderboardExport
-): LeaderboardInfoWithCategory {
-  const rankingInfo: RankingInfo[] = leaderboard.items.map((item) => {
-    const badges = convertProtoBadges(item.badges);
-    return {
-      id: item.id,
-      rank: item.rank,
-      elo: item.elo,
-      username: item.username,
-      delta: item.delta,
-      avatar: item.avatar,
-      badges: badges
-    };
-  });
-  return {
-    id: identifier,
-    info: {
-      ranks: rankingInfo,
-      generatedAt: new Date(leaderboard.generatedAt * 1000)
-    },
-    category
-  };
-}
-
-function convertProtoBadges(badges: BadgeInformation[]): Badge[] {
-  return badges.map((badge) => ({
-    description: badge.description,
-    image_url: badge.imageUrl
-  }));
-}
-
-function handleError(path: string, error: Error) {
-  // TODO: Create an error handling page for this.
-  alert(`Error parsing leaderboard from ${path}: ${error}`);
-}
-
-const overallRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('overall', 'Twitch', 'overall.bin')
-);
-const chatOnlyRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('chat-only', 'Twitch', 'chat-only.bin')
-);
-const nonvipsRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('non-vips', 'Twitch', 'nonvips.bin')
-);
-const bitsRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('bits', 'Twitch', 'bits-only.bin')
-);
-const subsRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('subs', 'Twitch', 'subs-only.bin')
-);
-const discordRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('livestream-chat', 'Discord', 'discordlivestream.bin')
-);
-const partnersRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('partner-only', 'Twitch', 'partners-only.bin')
-);
-const bilibiliRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('bilibili', 'Bilibili', 'bilibililivestreamchat.bin')
-);
-const adventureTheFarmRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('adventures-farm', 'Community', 'adventures_farm.bin')
-);
-const emoteRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('top-emote', 'Twitch', 'top-emote.bin')
-);
-const ironmousePixelRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('ironmouse-pxls', 'Special Events', 'ironmouse_pxls.bin')
-);
-const pxlsRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('casual-pxls', 'Discord', 'casual_pxls.bin')
-);
-const ironmouseChatRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('ironmouse-pxls-chat', 'Special Events', 'ironmousecanvaschat.bin')
-);
-const cookiesRank = readable(
-  DEFAULT_LEADERBOARD_INFO,
-  makeRankingInfo('cookies', 'Discord', 'cookies.bin')
+export const liveRanks = writable(
+  new Map<string, Leaderboard>(),
+  subscribeWSUpdates
 );
 
-export const ranksMap = new Map([
-  ['Overall', overallRank],
-  ['Chat Only', chatOnlyRank],
-  ['Non-VIPs', nonvipsRank],
-  ['Bits Only', bitsRank],
-  ['Subs Only', subsRank],
-  ['Discord Livestream', discordRank],
-  ['Partners Only', partnersRank],
-  ['Bilibili Livestream Chat', bilibiliRank],
-  ['Adventures Farm', adventureTheFarmRank],
-  ['Top Emote', emoteRank],
-  ['Ironmouse Pxls', ironmousePixelRank],
-  ['Casual Pxls', pxlsRank],
-  ['Ironmouse Canvas Chat', ironmouseChatRank],
-  ['Cookies', cookiesRank]
+export const categoryMapping = new Map([
+  ['message_count', 'Twitch'],
+  ['subs', 'Twitch'],
+  ['bits', 'Twitch'],
+  ['twitch_livestream', 'Twitch'],
+  ['raid', 'Twitch'],
 ]);
+
+export const categoryLiveRanks = derived(
+  liveRanks,
+  $liveRanks => {
+    const result = new Map<string, LeaderboardWithCategory>();
+    for (const [key, value] of $liveRanks.entries()) {
+      result.set(key, {
+        ...value,
+        category: categoryMapping.get(key) ?? 'Unknown'
+      });
+    }
+    return result;
+  }
+);
+
+const rankingCoordinator = new RankingCoordinator();
+
+function subscribeWSUpdates(
+  set: (value: Map<string, Leaderboard>) => void,
+  update: (fn: Updater<Map<string, Leaderboard>>) => void,
+) {
+  rankingCoordinator.setOnInitialMessage(data => {
+    const resultMap = new Map();
+    for (const [key, value] of data.leaderboard.entries()) {
+      resultMap.set(key, {
+        name: key,
+        data: value.map(info => ({
+          ...info,
+          author: rankingCoordinator.populateAuthor(info.author_id),
+        }))
+      } as Leaderboard);
+    }
+
+    set(resultMap);
+  });
+
+  rankingCoordinator.setOnChangesMessage(changes => {
+    update((leaderboard) => {
+      changes.changes.forEach((deltas: Map<number, RankingInformation>, key: string) => {
+        deltas.forEach((value: RankingInformation, id: number) => {
+          if (id < leaderboard.get(key)!.data.length) {
+            leaderboard.get(key)!.data[id] = {
+              ...value,
+              author: rankingCoordinator.populateAuthor(value.author_id),
+            };
+          }
+        })
+      });
+      return leaderboard;
+    });
+  });
+}

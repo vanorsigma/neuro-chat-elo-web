@@ -1,36 +1,37 @@
 <script lang="ts">
   import Leaderboard from '$lib/leaderboard.svelte';
   import Podium from '$lib/podium.svelte';
-  import type { RankingInfo } from '$lib/ranks';
+  import type { FullRankingInformation } from '$lib/ranks';
   import type { User } from '$lib/user';
   import { onDestroy, onMount } from 'svelte';
 
   export let isActive: boolean;
-  export let rankingInfo: RankingInfo[];
+  export let rankingInfo: FullRankingInformation[];
   export let userSearchTextValue: string;
   var windowWidth = window.innerWidth;
   $: rankingInfoLength = rankingInfo.length;
 
-  let topUsers: User[] | undefined;
+  let topUsers: User[];
 
   $: {
     topUsers = rankingInfo
       .slice()
-      .sort((a, b) => a.rank > b.rank)
+      .sort((a, b) => (a.elo > b.elo ? 1 : a.elo == b.elo ? 0 : -1))
       .slice(0, 3)
       .map((data) => ({
-        name: data.username,
+        name: data.author.username,
         elo: data.elo,
-        avatar: data.avatar
+        avatar: data.author.avatar
       }));
   }
 
-  let currentTimeout;
-  function onSearchTextValueInput(e: InputEvent) {
+  let currentTimeout: number | undefined;
+  function onSearchTextValueInput(e: Event & { currentTarget: EventTarget & HTMLInputElement }) {
     clearTimeout(currentTimeout);
     currentTimeout = setTimeout(() => {
-      userSearchTextValue = e.target?.value;
-    }, 200);
+      // NOTE: I know for a fact that value exists in the target
+      userSearchTextValue = (e.target as unknown as { value: string })?.value;
+    }, 200) as unknown as number;
   }
 
   function onWindowResize() {

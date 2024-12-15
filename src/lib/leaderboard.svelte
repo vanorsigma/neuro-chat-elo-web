@@ -4,9 +4,9 @@
   import RankItem from './rankitem.svelte';
 
   import { onMount, afterUpdate } from 'svelte';
-  import { type RankingInfo } from './ranks';
+  import { type FullRankingInformation } from './ranks';
 
-  export let currentData: RankingInfo[];
+  export let currentData: FullRankingInformation[];
   export let isActive: boolean;
   let lagIsActive: boolean = false;
 
@@ -63,11 +63,17 @@
 
   /* Searchable Shenanigans */
   export let searchTerm = '';
-  $: filteredList = currentData.filter((val) => {
-    // every time this has to run, we reset the slice end
-    sliceEnd = defaultEnd;
-    return new RegExp(searchTerm, 'i').test(val.username);
-  });
+  $: filteredList = currentData
+    .map((val, idx) => ({
+      rank: idx + 1,
+      val
+    }))
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    .filter(({ val }) => {
+      // every time this has to run, we reset the slice end
+      sliceEnd = defaultEnd;
+      return new RegExp(searchTerm, 'i').test(val.author.username);
+    });
 
   /* Lazy Loading */
   // NOTE: Browsers are really good at loading large data files into memory,
@@ -100,11 +106,11 @@
     {#each filteredList.slice(0, sliceEnd) as rank}
       <RankItem
         rank={rank.rank}
-        score={rank.elo}
-        username={rank.username}
-        delta={rank.delta}
-        avatarUrl={rank.avatar}
-        badges={rank.badges == null ? [] : rank.badges}
+        score={rank.val.elo}
+        username={rank.val.author.username}
+        delta={0}
+        avatarUrl={rank.val.author.avatar}
+        badges={[]}
       />
     {/each}
     <div class="h-1" bind:this={endMarker} />

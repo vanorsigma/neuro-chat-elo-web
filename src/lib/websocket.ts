@@ -1,21 +1,21 @@
 import { PUBLIC_WS_HOST_URL } from '$env/static/public'
 
-interface RankingAuthorId {
+export interface RankingAuthorId {
   platform: string;
   id: string;
 }
 
-interface RankingInformation {
+export interface RankingInformation {
   author_id: RankingAuthorId;
   elo: number;
 }
 
-interface InitialData {
+export interface InitialData {
   leaderboard: Map<string, RankingInformation[]>;
 }
 
-interface ChangeData {
-  changes: Map<string, Map<string, RankingInformation>>
+export interface ChangeData {
+  changes: Map<string, Map<number, RankingInformation>>
 }
 
 function makeInitialData(message: { leaderboards: object }): InitialData {
@@ -29,7 +29,7 @@ function makeChangeData(message: { changes: object }): ChangeData {
   // assumption: message is a valid ChangeData object
   return {
     changes: Object.entries(message['changes']).reduce((acc, [key, value]) => {
-      acc.set(key, new Map(Object.entries(value)));
+      acc.set(key, new Map(Object.entries(value).map(([k, v]) => [parseInt(k), v])));
       return acc;
     }, new Map())
   };

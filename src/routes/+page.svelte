@@ -3,41 +3,43 @@
   import LoadableFlexContainer from '$lib/loadableFlexContainer.svelte';
   import RevealCards from '$lib/revealCards.svelte';
   import type { RevealMetadata } from '$lib/revealMetadata';
-  import { ranksMap, type LeaderboardInfoWithCategory } from '$lib/ranks';
+  import { liveRanks, type Leaderboard } from '$lib/ranks';
   import { sanitizeString } from '$lib';
   import Menu from '$lib/menu.svelte';
   import Burger from '$lib/burger.svelte';
-  import type { Readable } from 'svelte/store';
-  import { onDestroy, onMount } from 'svelte';
-  import { EloWebSocket } from '$lib/websocket';
 
   let showRankingsLoading = false;
   let allowRankings = false; // this forces the loading text to appear
   let activeIndex =
-    sanitizeString(new URL(window.location.href).searchParams.get('index')) || 'overall';
+    sanitizeString(new URL(window.location.href).searchParams.get('index')) || 'twitch_livestream';
 
-  let rankings: { [key: string]: LeaderboardInfoWithCategory } = {};
-  $: allRanksLoaded = Object.values(rankings).every((r) => r.info.ranks.length > 0);
+  // let rankings: { [key: string]: LeaderboardInfoWithCategory } = {};
 
-  function callbackForStore(key: string, value: LeaderboardInfoWithCategory) {
-    rankings[key] = value;
-  }
+  let rankings = new Map<string, Leaderboard>();
+  liveRanks.subscribe((value) => {
+    rankings = value;
+  });
+  $: allRanksLoaded = rankings.values().every((r) => r.data.length > 0);
 
-  function subscribeStore(
-    store: Readable<LeaderboardInfoWithCategory>,
-    callback: (value: LeaderboardInfoWithCategory) => void
-  ) {
-    let unsubscribe = store.subscribe(callback);
-    onDestroy(() => {
-      unsubscribe();
-    });
-  }
+  // function callbackForStore(key: string, value: LeaderboardInfoWithCategory) {
+  //   rankings[key] = value;
+  // }
 
-  $: {
-    for (let [key, value] of ranksMap.entries()) {
-      subscribeStore(value, (v) => callbackForStore(key, v));
-    }
-  }
+  // function subscribeStore(
+  //   store: Readable<LeaderboardInfoWithCategory>,
+  //   callback: (value: LeaderboardInfoWithCategory) => void
+  // ) {
+  //   let unsubscribe = store.subscribe(callback);
+  //   onDestroy(() => {
+  //     unsubscribe();
+  //   });
+  // }
+
+  // $: {
+  //   for (let [key, value] of ranksMap.entries()) {
+  //     subscribeStore(value, (v) => callbackForStore(key, v));
+  //   }
+  // }
 
   let menuAppear = false;
 
@@ -77,30 +79,20 @@
   }
 
   $: metadatas = Array.from(
-    Object.entries(rankings)
+    rankings
+      .entries()
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .filter(([_, leaderboardInfo]) => {
-        return leaderboardInfo.info.ranks.length !== 0;
+        return leaderboardInfo.data.length !== 0;
       })
       .map(([title, leaderboardInfo]) => {
         return {
-          avatarName: leaderboardInfo.info.ranks[0]?.username,
-          avatarUrl: leaderboardInfo.info.ranks[0]?.avatar,
+          avatarName: leaderboardInfo.data[0].author.id,
+          avatarUrl: leaderboardInfo.data[0]?.author.avatar,
           leaderboardName: title
         } as RevealMetadata;
       })
   );
-
-  onMount(() => {
-    const ws = new EloWebSocket();
-    // TODO: from websockets update leaderboards
-    ws.setOnChangesMessage((message) => {
-      console.log(message);
-    });
-    ws.setOnInitialMessage((message) => {
-      console.log(message);
-    });
-  });
 </script>
 
 <svg width="0" height="0">
@@ -131,7 +123,7 @@
   <p class="absolute">Loading...</p>
 {/if}
 
-{#if allowRankings && allRanksLoaded}
+{#if true}
   <Burger
     onClick={() => {
       menuAppear = !menuAppear;
@@ -151,9 +143,9 @@
       showRankingsLoading = false;
     }}
   >
-    {#each Object.entries(rankings) as [title, leaderboardInfo]}
+    {#each rankings.entries() as [title, leaderboardInfo]}
       <div
-        class="flex flex-col px-5 w-full h-full md:h-full md:h-[90%] {leaderboardInfo.id ===
+        class="flex flex-col px-5 w-full h-full md:h-full md:h-[90%] {leaderboardInfo.name ===
         activeIndex
           ? ''
           : 'hidden'}"
@@ -162,11 +154,11 @@
           {title}
         </h1>
         <RankingCard
-          isActive={leaderboardInfo.id === activeIndex}
+          isActive={leaderboardInfo.name === activeIndex}
           bind:userSearchTextValue
-          rankingInfo={leaderboardInfo.info.ranks}
+          rankingInfo={leaderboardInfo.data}
         />
-        <p>Generated at: {leaderboardInfo.info.generatedAt.toLocaleString()} (your timezone)</p>
+        <!--TODO: <p>Generated at: {leaderboardInfo.info.generatedAt.toLocaleString()} (your timezone)</p>-->
       </div>
     {/each}
   </LoadableFlexContainer>
