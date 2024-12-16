@@ -1,7 +1,5 @@
-import { readable, writable, type Updater, derived } from 'svelte/store';
-import axios from 'axios';
-import { BadgeInformation, LeaderboardExport } from '../gen/leaderboardExportTypes';
-import { EloWebSocket, type RankingInformation } from './websocket';
+import { writable, type Updater, derived } from 'svelte/store';
+import { type RankingInformation } from './websocket';
 import { RankingCoordinator, type ExpandedAuthorInformation } from './rankingCoordinator';
 
 export interface FullRankingInformation {
@@ -54,29 +52,29 @@ function subscribeWSUpdates(
   set: (value: Map<string, Leaderboard>) => void,
   update: (fn: Updater<Map<string, Leaderboard>>) => void,
 ) {
-  rankingCoordinator.setOnInitialMessage(data => {
+  rankingCoordinator.setOnInitialMessage(async (data) => {
     const resultMap = new Map();
     for (const [key, value] of data.leaderboard.entries()) {
       resultMap.set(key, {
         name: key,
-        data: value.map(info => ({
+        data: await Promise.all(value.map(async info => ({
           ...info,
-          author: rankingCoordinator.populateAuthor(info.author_id),
-        }))
+          author: await rankingCoordinator.populateAuthor(info.author_id),
+        })))
       } as Leaderboard);
     }
 
     set(resultMap);
   });
 
-  rankingCoordinator.setOnChangesMessage(changes => {
+  rankingCoordinator.setOnChangesMessage(async (changes) => {
     update((leaderboard) => {
       changes.changes.forEach((deltas: Map<number, RankingInformation>, key: string) => {
-        deltas.forEach((value: RankingInformation, id: number) => {
+        deltas.forEach(async (value: RankingInformation, id: number) => {
           if (id < leaderboard.get(key)!.data.length) {
             leaderboard.get(key)!.data[id] = {
               ...value,
-              author: rankingCoordinator.populateAuthor(value.author_id),
+              author: await rankingCoordinator.populateAuthor(value.author_id),
             };
           }
         })
