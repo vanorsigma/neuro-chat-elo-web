@@ -6,7 +6,7 @@
   import { onMount, afterUpdate } from 'svelte';
   import { type FullRankingInformation } from './ranks';
 
-  export let currentData: FullRankingInformation[];
+  export let currentData: Map<number, FullRankingInformation>;
   export let isActive: boolean;
   let lagIsActive: boolean = false;
 
@@ -63,8 +63,8 @@
 
   /* Searchable Shenanigans */
   export let searchTerm = '';
-  $: filteredList = currentData
-    .map((val, idx) => ({
+  $: filteredList = Array.from(currentData.entries())
+    .map(([idx, val]) => ({
       rank: idx + 1,
       val
     }))

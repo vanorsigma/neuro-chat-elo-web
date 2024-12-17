@@ -6,15 +6,15 @@
   import { onDestroy, onMount } from 'svelte';
 
   export let isActive: boolean;
-  export let rankingInfo: FullRankingInformation[];
+  export let rankingInfo: Map<number, FullRankingInformation>;
   export let userSearchTextValue: string;
   var windowWidth = window.innerWidth;
-  $: rankingInfoLength = rankingInfo.length;
+  $: rankingInfoLength = rankingInfo.size;
 
   let topUsers: User[];
 
   $: {
-    topUsers = rankingInfo
+    topUsers = Array.from(rankingInfo.values())
       .slice()
       .sort((a, b) => (a.elo > b.elo ? 1 : a.elo == b.elo ? 0 : -1))
       .slice(0, 3)

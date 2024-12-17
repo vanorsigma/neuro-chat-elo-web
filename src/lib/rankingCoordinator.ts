@@ -2,7 +2,7 @@ import { EloWebSocket } from './websocket';
 import axios from 'axios';
 import { PUBLIC_PROFILE_URL } from '$env/static/public'
 import { TimeCache } from './timecache';
-import type { ChangeData, InitialData, RankingAuthorId } from './websocket';
+import type { WebsocketChangesMessage, RankingAuthorId } from './websocket';
 
 export interface ExpandedAuthorInformation {
   platform: string;
@@ -26,11 +26,7 @@ export class RankingCoordinator {
     this.cache = new TimeCache(100, 1000 * 60 * 60);
   }
 
-  setOnInitialMessage(callback: (data: InitialData) => void) {
-    this.ws.setOnInitialMessage(callback);
-  }
-
-  setOnChangesMessage(callback: (data: ChangeData) => void) {
+  setOnChangesMessage(callback: (data: WebsocketChangesMessage) => void) {
     this.ws.setOnChangesMessage(callback);
   }
 

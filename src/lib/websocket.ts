@@ -1,4 +1,4 @@
-import { PUBLIC_WS_HOST_URL } from '$env/static/public'
+import { PUBLIC_WS_HOST_URL } from '$env/static/public';
 
 export interface RankingAuthorId {
   platform: string;
@@ -10,72 +10,84 @@ export interface RankingInformation {
   elo: number;
 }
 
-export interface InitialData {
-  leaderboard: Map<string, RankingInformation[]>;
-}
-
-export interface ChangeData {
-  changes: Map<string, Map<number, RankingInformation>>
-}
-
-function makeInitialData(message: { leaderboards: object }): InitialData {
-  // assumption: message is a valid InitialData object
-  return {
-    leaderboard: new Map(Object.entries(message['leaderboards']))
-  };
-}
-
-function makeChangeData(message: { changes: object }): ChangeData {
+function makeChangeData(message: { [key: string]: object }): Map<number, RankingInformation> {
   // assumption: message is a valid ChangeData object
-  return {
-    changes: Object.entries(message['changes']).reduce((acc, [key, value]) => {
-      acc.set(key, new Map(Object.entries(value).map(([k, v]) => [parseInt(k), v])));
-      return acc;
-    }, new Map())
-  };
+  return new Map(Object.entries(message).map(([key, value]) => [parseInt(key), value as RankingInformation]));
 }
 
-export interface WebSocketInitialMessage {
-  type: 'initial_leaderboards';
-  data: InitialData;
-};
+export interface WebsocketChangesMessage {
+  readonly type: 'changes';
+  leaderboard_name: string;
+  changes: Map<number, RankingInformation>;
+}
 
-export interface WebSocketChangesMessage {
-  type: 'changes';
-  data: ChangeData;
-};
+export interface WebsocketInitializeIncoming {
+  readonly type: 'inital_info';
+  leaderboard_names: string[];
+}
 
-export type WebSocketMessage = WebSocketInitialMessage | WebSocketChangesMessage;
+export interface WebsocketInitializeWindow {
+  leaderboard_name: string;
+  starting_index: number;
+  following_entries: number;
+}
+
+export interface WebsocketInitializeOutgoing {
+  readonly type: 'change_window';
+  window: WebsocketInitializeWindow;
+}
+
+export type WebSocketIncoming = WebsocketInitializeIncoming | WebsocketChangesMessage;
+export type WebSocketOutgoing = WebsocketInitializeOutgoing;
 
 export class EloWebSocket {
   private ws: WebSocket;
-  private onInitialMessage: (data: InitialData) => void = () => {};
-  private onChangesMessage: (data: ChangeData) => void = () => {};
+  private leaderboardNames: string[] = [];
+  private onChangesMessage: (data: WebsocketChangesMessage) => void = () => {};
 
   constructor() {
     this.ws = new WebSocket(PUBLIC_WS_HOST_URL);
 
     this.ws.onmessage = async (event) => {
-      const message = JSON.parse(await event.data.text()) as WebSocketMessage;
+      const message = JSON.parse(await event.data.text()) as WebSocketIncoming;
       this.onMessage(message);
     };
   }
 
-  setOnInitialMessage(callback: (data: InitialData) => void) {
-    this.onInitialMessage = callback;
-  }
-
-  setOnChangesMessage(callback: (data: ChangeData) => void) {
+  setOnChangesMessage(callback: (data: WebsocketChangesMessage) => void) {
     this.onChangesMessage = callback;
   }
 
-  private onMessage(message: WebSocketMessage) {
+  onInitialInfo(data: WebsocketInitializeIncoming) {
+    this.leaderboardNames = data.leaderboard_names;
+    for (const leaderboardName of this.leaderboardNames) {
+      this.ws.send(
+        new Blob([
+          JSON.stringify({
+            type: 'change_window',
+            window: {
+              leaderboard_name: leaderboardName,
+              starting_index: 2,
+              following_entries: 10
+            }
+          } as WebsocketInitializeOutgoing)
+        ])
+      );
+    }
+  }
+
+  private onMessage(message: WebSocketIncoming) {
     switch (message.type) {
-      case 'initial_leaderboards':
-        this.onInitialMessage(makeInitialData(message.data as unknown as { leaderboards: object }));
-        break;
       case 'changes':
-        this.onChangesMessage(makeChangeData(message.data as { changes: object }));
+        this.onChangesMessage(
+          {
+            ...message,
+            changes: makeChangeData(message.changes as unknown as { [key: string]: object })
+          }
+        );
+        break;
+      case 'inital_info':
+        this.onInitialInfo(message);
         break;
     }
   }

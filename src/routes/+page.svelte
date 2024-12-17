@@ -19,7 +19,7 @@
   liveRanks.subscribe((value) => {
     rankings = value;
   });
-  $: allRanksLoaded = rankings.values().every((r) => r.data.length > 0);
+  $: allRanksLoaded = Array.from(rankings.values()).every((r) => r.data.size > 0);
 
   // function callbackForStore(key: string, value: LeaderboardInfoWithCategory) {
   //   rankings[key] = value;
@@ -79,16 +79,16 @@
   }
 
   $: metadatas = Array.from(
-    rankings
-      .entries()
+    Array.from(rankings.entries())
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .filter(([_, leaderboardInfo]) => {
-        return leaderboardInfo.data.length !== 0;
+        return leaderboardInfo.data.size !== 0;
       })
       .map(([title, leaderboardInfo]) => {
+        console.log(leaderboardInfo);
         return {
-          avatarName: leaderboardInfo.data[0].author.id,
-          avatarUrl: leaderboardInfo.data[0]?.author.avatar,
+          avatarName: leaderboardInfo.data.get(0)?.author.id,
+          avatarUrl: leaderboardInfo.data.get(0)?.author.avatar,
           leaderboardName: title
         } as RevealMetadata;
       })
