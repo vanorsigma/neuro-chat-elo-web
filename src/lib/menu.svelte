@@ -62,6 +62,6 @@
   {/each}
 
   <p class="flex-none text-center hidden sm:block">
-    Public Alpha. Please ping @vanorsigma for feedback
+    Public Beta. Please ping @vanorsigma for feedback
   </p>
 </div>
