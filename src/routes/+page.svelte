@@ -3,15 +3,20 @@
   import LoadableFlexContainer from '$lib/loadableFlexContainer.svelte';
   import RevealCards from '$lib/revealCards.svelte';
   import type { RevealMetadata } from '$lib/revealMetadata';
-  import { liveRanks, type Leaderboard } from '$lib/ranks';
+  import { liveRanks, rankingCoordinator, type Leaderboard } from '$lib/ranks';
   import { sanitizeString } from '$lib';
   import Menu from '$lib/menu.svelte';
   import Burger from '$lib/burger.svelte';
+  import { onDestroy } from 'svelte';
 
   let showRankingsLoading = false;
   let allowRankings = false; // this forces the loading text to appear
   let activeIndex =
     sanitizeString(new URL(window.location.href).searchParams.get('index')) || 'twitch_livestream';
+
+  $: {
+    rankingCoordinator.changeWindow(activeIndex, 0, 10, false);
+  }
 
   // let rankings: { [key: string]: LeaderboardInfoWithCategory } = {};
 
@@ -19,7 +24,6 @@
   liveRanks.subscribe((value) => {
     rankings = value;
   });
-  $: allRanksLoaded = Array.from(rankings.values()).every((r) => r.data.size > 0);
 
   // function callbackForStore(key: string, value: LeaderboardInfoWithCategory) {
   //   rankings[key] = value;
@@ -55,6 +59,15 @@
     window.history.replaceState({}, '', url.toString());
   }
 
+  let websocketOnline = rankingCoordinator.getIsOnline();
+  let unsubscribeHandle = rankingCoordinator.getIsOnlineStore().subscribe((value) => {
+    websocketOnline = value;
+  });
+
+  onDestroy(() => {
+    unsubscribeHandle();
+  });
+
   // Searching shenanigans
   let userSearchTextValue: string = new URL(window.location.href).searchParams.get('search') || '';
 
@@ -85,7 +98,6 @@
         return leaderboardInfo.data.size !== 0;
       })
       .map(([title, leaderboardInfo]) => {
-        console.log(leaderboardInfo);
         return {
           avatarName: leaderboardInfo.data.get(0)?.author.id,
           avatarUrl: leaderboardInfo.data.get(0)?.author.avatar,
@@ -119,7 +131,7 @@
   </defs>
 </svg>
 
-{#if showRankingsLoading || !allRanksLoaded}
+{#if showRankingsLoading}
   <p class="absolute">Loading...</p>
 {/if}
 
@@ -143,27 +155,27 @@
       showRankingsLoading = false;
     }}
   >
-    {#each rankings.entries() as [title, leaderboardInfo]}
-      <div
-        class="flex flex-col px-5 w-full h-full md:h-full md:h-[90%] {leaderboardInfo.name ===
-        activeIndex
-          ? ''
-          : 'hidden'}"
-      >
+    {#if rankings.has(activeIndex)}
+      <div class="flex flex-col px-5 w-full h-full md:h-full md:h-[90%]">
         <h1 class="text-3xl flex-none font-bold my-5 md:my-0 text-center">
-          {title}
+          {rankings.get(activeIndex)?.name}
         </h1>
         <RankingCard
-          isActive={leaderboardInfo.name === activeIndex}
+          leaderboardId={rankings.get(activeIndex)?.name ?? ''}
           bind:userSearchTextValue
-          rankingInfo={leaderboardInfo.data}
+          rankingInfo={rankings.get(activeIndex)?.data ?? new Map()}
         />
-        <!--TODO: <p>Generated at: {leaderboardInfo.info.generatedAt.toLocaleString()} (your timezone)</p>-->
+        <p>
+          WebSocket: <span
+            class:text-green-700={websocketOnline}
+            class:text-red-700={!websocketOnline}>{websocketOnline ? 'Online' : 'Offline'}</span
+          >
+        </p>
       </div>
-    {/each}
+    {/if}
   </LoadableFlexContainer>
 {/if}
 
-{#if !showRankingsLoading && !allowRankings && Object.values(rankings)[Object.values(rankings).length - 1]?.info.ranks.length > 0 && allRanksLoaded}
+{#if !showRankingsLoading && !allowRankings && Object.values(rankings)[Object.values(rankings).length - 1]?.info.ranks.length > 0}
   <RevealCards revealMetadatas={metadatas} allAnimationsDone={onAnimationDone} />
 {/if}

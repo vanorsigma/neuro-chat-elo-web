@@ -1,3 +1,10 @@
+export enum RankType {
+  GOLD,
+  SILVER,
+  BRONZE,
+  NORMAL
+};
+
 /**
  * This function preloads images, (also tries to bypass hotlinking protection)
  * It returns a base64 encoded URL that represents the loaded image

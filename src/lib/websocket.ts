@@ -1,4 +1,5 @@
 import { PUBLIC_WS_HOST_URL } from '$env/static/public';
+import { writable, type Writable } from 'svelte/store';
 
 export interface RankingAuthorId {
   platform: string;
@@ -12,7 +13,9 @@ export interface RankingInformation {
 
 function makeChangeData(message: { [key: string]: object }): Map<number, RankingInformation> {
   // assumption: message is a valid ChangeData object
-  return new Map(Object.entries(message).map(([key, value]) => [parseInt(key), value as RankingInformation]));
+  return new Map(
+    Object.entries(message).map(([key, value]) => [parseInt(key), value as RankingInformation])
+  );
 }
 
 export interface WebsocketChangesMessage {
@@ -43,48 +46,95 @@ export type WebSocketOutgoing = WebsocketInitializeOutgoing;
 export class EloWebSocket {
   private ws: WebSocket;
   private leaderboardNames: string[] = [];
+  private onInitialInfoCallback: (data: WebsocketInitializeIncoming) => void = () => {};
   private onChangesMessage: (data: WebsocketChangesMessage) => void = () => {};
+  private isOnline: Writable<boolean>;
+  private beforeConnectBacklog: WebSocketOutgoing[] = [];
 
   constructor() {
     this.ws = new WebSocket(PUBLIC_WS_HOST_URL);
+    this.isOnline = writable(false);
 
     this.ws.onmessage = async (event) => {
       const message = JSON.parse(await event.data.text()) as WebSocketIncoming;
       this.onMessage(message);
     };
+
+    this.ws.onopen = () => {
+      console.log('open')
+      this.isOnline.set(true);
+      this.handleBacklog();
+    }
+
+    this.ws.onclose = () => {
+      console.log('why are you closed')
+      this.isOnline.set(false);
+    }
+  }
+
+  private handleBacklog() {
+    for (const message of this.beforeConnectBacklog) {
+      this.ws.send(
+        new Blob([
+          JSON.stringify(message)
+        ])
+      );
+    }
+  }
+
+  private trySend(message: WebSocketOutgoing) {
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      this.beforeConnectBacklog.push(message);
+      return;
+    }
+
+    this.ws.send(
+      new Blob([
+        JSON.stringify(message)
+      ])
+    );
+  }
+
+  getIsOnline() {
+    console.log('readyState', this.ws.readyState, this.ws.readyState <= WebSocket.OPEN)
+    return this.ws.readyState <= WebSocket.OPEN;
+  }
+
+  getIsOnlineStore() {
+    return this.isOnline;
+  }
+
+  setOnInitializeInfo(callback: (data: WebsocketInitializeIncoming) => void) {
+    this.onInitialInfoCallback = callback;
   }
 
   setOnChangesMessage(callback: (data: WebsocketChangesMessage) => void) {
     this.onChangesMessage = callback;
   }
 
+  changeWindow(leaderboardName: string, startingIndex: number, followingEntries: number) {
+    this.trySend({
+      type: 'change_window',
+      window: {
+        leaderboard_name: leaderboardName,
+        starting_index: startingIndex,
+        following_entries: followingEntries
+      }
+    } as WebsocketInitializeOutgoing)
+  }
+
   onInitialInfo(data: WebsocketInitializeIncoming) {
     this.leaderboardNames = data.leaderboard_names;
-    for (const leaderboardName of this.leaderboardNames) {
-      this.ws.send(
-        new Blob([
-          JSON.stringify({
-            type: 'change_window',
-            window: {
-              leaderboard_name: leaderboardName,
-              starting_index: 2,
-              following_entries: 10
-            }
-          } as WebsocketInitializeOutgoing)
-        ])
-      );
-    }
+    this.onInitialInfoCallback(data);
   }
 
   private onMessage(message: WebSocketIncoming) {
     switch (message.type) {
       case 'changes':
-        this.onChangesMessage(
-          {
-            ...message,
-            changes: makeChangeData(message.changes as unknown as { [key: string]: object })
-          }
-        );
+        this.onChangesMessage({
+          ...message,
+          changes: makeChangeData(message.changes as unknown as { [key: string]: object })
+        });
         break;
       case 'inital_info':
         this.onInitialInfo(message);

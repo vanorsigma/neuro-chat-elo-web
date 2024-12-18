@@ -5,7 +5,7 @@
   import type { User } from '$lib/user';
   import { onDestroy, onMount } from 'svelte';
 
-  export let isActive: boolean;
+  export let leaderboardId: string;
   export let rankingInfo: Map<number, FullRankingInformation>;
   export let userSearchTextValue: string;
   var windowWidth = window.innerWidth;
@@ -16,7 +16,7 @@
   $: {
     topUsers = Array.from(rankingInfo.values())
       .slice()
-      .sort((a, b) => (a.elo > b.elo ? 1 : a.elo == b.elo ? 0 : -1))
+      .sort((a, b) => (a.elo > b.elo ? -1 : a.elo == b.elo ? 0 : 1))
       .slice(0, 3)
       .map((data) => ({
         name: data.author.username,
@@ -73,7 +73,7 @@
       value={userSearchTextValue}
     />
     {#if rankingInfoLength >= 3}
-      <Leaderboard {isActive} searchTerm={userSearchTextValue} currentData={rankingInfo} />
+      <Leaderboard {leaderboardId} searchTerm={userSearchTextValue} currentData={rankingInfo} />
     {/if}
   </div>
 </div>

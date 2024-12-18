@@ -36,8 +36,7 @@
 
     // If all elements are the same, return a default scaled array
     if (elements[2] === elements[0]) {
-      const defaultValue = Math.round((minimumHeight + maximumHeight) / 2);
-      return [defaultValue, defaultValue, defaultValue];
+      return [1.0, 1.0, 1.0];
     }
 
     const maxElementAbove = elements[2] - elements[0];
@@ -90,8 +89,7 @@
     return `font-size: ${(1 / text.length) * 100}px; font-family: "Comic Sans MS";`;
   }
 
-  onMount(() => {
-    // NOTE: This is fine only because there are only three positions (ever) on the podium
+  $: {
     const promise = async () => {
       firstAvatarUrlResolved = await loadImageAsBase64URL(firstPlace.avatar);
       secondAvatarUrlResolved = await loadImageAsBase64URL(secondPlace.avatar);
@@ -99,7 +97,10 @@
     };
 
     promise();
+  }
 
+  onMount(() => {
+    // NOTE: This is fine only because there are only three positions (ever) on the podium
     const relativeHeights = calculateRelativeHeights();
     secondRelativeHeight = relativeHeights[1];
     thirdRelativeHeight = relativeHeights[2];

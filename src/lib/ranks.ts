@@ -40,26 +40,19 @@ export const categoryLiveRanks = derived(liveRanks, ($liveRanks) => {
   return result;
 });
 
-const rankingCoordinator = new RankingCoordinator();
+export const rankingCoordinator = new RankingCoordinator();
 
 function subscribeWSUpdates(
   set: (value: Map<string, Leaderboard>) => void,
   update: (fn: Updater<Map<string, Leaderboard>>) => void
 ) {
-  // rankingCoordinator.setOnInitialMessage(async (data) => {
-  //   const resultMap = new Map();
-  //   for (const [key, value] of data.leaderboard.entries()) {
-  //     resultMap.set(key, {
-  //       name: key,
-  //       data: await Promise.all(value.map(async info => ({
-  //         ...info,
-  //         author: await rankingCoordinator.populateAuthor(info.author_id),
-  //       })))
-  //     } as Leaderboard);
-  //   }
-
-  //   set(resultMap);
-  // });
+  rankingCoordinator.setOnInitialInfo((data) => {
+    const result = new Map<string, Leaderboard>();
+    for (const name of data.leaderboard_names) {
+      result.set(name, { name, data: new Map() });
+    }
+    set(result);
+  });
 
   rankingCoordinator.setOnChangesMessage(async (changes) => {
     const authorLookup = new Map();

@@ -1,10 +1,8 @@
 <script lang="ts">
-  import Gold from './rankitems/gold.svelte';
-  import Silver from './rankitems/silver.svelte';
-  import Bronze from './rankitems/bronze.svelte';
+  import { onMount } from 'svelte';
   import Normal from './rankitems/normal.svelte';
 
-  import type { Badge } from './ranks';
+  // import type { Badge } from './ranks';
 
   export let rank: number = NaN;
   export let username: string = '';
@@ -13,36 +11,27 @@
 
   /* TODO: probably implement this in the SVG */
   export let delta: number = NaN;
-  export let badges: Badge[];
+  // export let badges: Badge[];
+
+  export let onVisibilityChanged: (visibility: boolean) => void = () => {};
+  export let onHeightChanged: (height: number) => void = () => {};
+
+  let element: HTMLDivElement;
+  const observer = new IntersectionObserver((entries) => {
+    onVisibilityChanged(entries.some((entry) => entry.isIntersecting));
+  });
+
+  onMount(() => {
+    element.onresize = () => {
+      onHeightChanged(element.clientHeight);
+    };
+    onHeightChanged(element.clientHeight);
+    observer.observe(element);
+  });
 </script>
 
-{#if rank == 1}
-  <Gold
-    {avatarUrl}
-    {username}
-    eloScore={score}
-    iconUrl={badges.length > 0 ? badges[0].image_url : ''}
-  />
-{:else if rank == 2}
-  <Silver
-    {avatarUrl}
-    {username}
-    eloScore={score}
-    iconUrl={badges.length > 0 ? badges[0].image_url : ''}
-  />
-{:else if rank == 3}
-  <Bronze
-    {avatarUrl}
-    {username}
-    eloScore={score}
-    iconUrl={badges.length > 0 ? badges[0].image_url : ''}
-  />
-{:else}
-  <Normal
-    {avatarUrl}
-    {rank}
-    {username}
-    eloScore={score}
-    iconUrl={badges.length > 0 ? badges[0].image_url : ''}
-  />
-{/if}
+<div bind:this={element} class="w-full h-fit">
+  <Normal {avatarUrl} {rank} {username} eloScore={score} iconUrl={''} />
+</div>
+
+<!-- iconUrl={badges.length > 0 ? badges[0].image_url : ''} -->
