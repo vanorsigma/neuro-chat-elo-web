@@ -26,7 +26,12 @@ export const categoryMapping = new Map([
   ['subs', 'Twitch'],
   ['bits', 'Twitch'],
   ['twitch_livestream', 'Twitch'],
-  ['raid', 'Twitch']
+  ['raid', 'Twitch'],
+  ['emote', 'Twitch'],
+  ['partner', 'Twitch'],
+  ['non-vips', 'Twitch'],
+  ['overall', 'Twitch'],
+  ['discord_livestream', 'Discord'],
 ]);
 
 export const categoryLiveRanks = derived(liveRanks, ($liveRanks) => {

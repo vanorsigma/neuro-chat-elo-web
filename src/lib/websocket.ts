@@ -61,13 +61,11 @@ export class EloWebSocket {
     };
 
     this.ws.onopen = () => {
-      console.log('open')
       this.isOnline.set(true);
       this.handleBacklog();
     }
 
     this.ws.onclose = () => {
-      console.log('why are you closed')
       this.isOnline.set(false);
     }
   }
@@ -96,7 +94,6 @@ export class EloWebSocket {
   }
 
   getIsOnline() {
-    console.log('readyState', this.ws.readyState, this.ws.readyState <= WebSocket.OPEN)
     return this.ws.readyState <= WebSocket.OPEN;
   }
 

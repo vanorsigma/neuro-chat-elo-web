@@ -64,14 +64,14 @@
     class="bg-chat rounded-xl flex flex-col items-center max-h-[70vh] md:max-h-[90%] flex-0 p-5 w-full md:w-[40%] min-h-0"
   >
     <h1 class="text-3xl">Leaderboard</h1>
-    <input
+    <!--<input
       class="md:self-end m-2"
       type="text"
       placeholder="Search username..."
       alt="Username"
       on:input={(e) => onSearchTextValueInput(e)}
       value={userSearchTextValue}
-    />
+    />-->
     {#if rankingInfoLength >= 3}
       <Leaderboard {leaderboardId} searchTerm={userSearchTextValue} currentData={rankingInfo} />
     {/if}

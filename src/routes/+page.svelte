@@ -9,7 +9,7 @@
   import Burger from '$lib/burger.svelte';
   import { onDestroy } from 'svelte';
 
-  let showRankingsLoading = false;
+  let showRankingsLoading = true; // TODO: we no longer have revealCards, but it would nice to keep the infra
   let allowRankings = false; // this forces the loading text to appear
   let activeIndex =
     sanitizeString(new URL(window.location.href).searchParams.get('index')) || 'twitch_livestream';
@@ -131,11 +131,20 @@
   </defs>
 </svg>
 
-{#if showRankingsLoading}
-  <p class="absolute">Loading...</p>
+{#if (rankings.get(activeIndex)?.data.size ?? 0) == 0}
+  <div class="w-full h-full flex items-center justify-center">
+    <div class="w-fit h-fit text-center">
+      <img
+        class="flex-basis"
+        alt="neuroSpin"
+        src="https://cdn.7tv.app/emote/01HAZ1Y5JR000EY75ATHMFB7XQ/4x.avif"
+      />
+      <p>Now Spinning...</p>
+    </div>
+  </div>
 {/if}
 
-{#if true}
+{#if (rankings.get(activeIndex)?.data.size ?? 0) > 0}
   <Burger
     onClick={() => {
       menuAppear = !menuAppear;

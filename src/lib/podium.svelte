@@ -97,14 +97,12 @@
     };
 
     promise();
-  }
 
-  onMount(() => {
     // NOTE: This is fine only because there are only three positions (ever) on the podium
     const relativeHeights = calculateRelativeHeights();
     secondRelativeHeight = relativeHeights[1];
     thirdRelativeHeight = relativeHeights[2];
-  });
+  }
 </script>
 
 <svg

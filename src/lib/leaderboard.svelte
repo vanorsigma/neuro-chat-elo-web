@@ -4,6 +4,7 @@
   import { onDestroy, onMount } from 'svelte';
   import RankItem from './rankitem.svelte';
   import { rankingCoordinator, type FullRankingInformation } from './ranks';
+  import { flip } from 'svelte/animate';
 
   export let currentData: Map<number, FullRankingInformation>;
   export let maxItemHeight: number = 10;
@@ -78,32 +79,33 @@
 
   /* Searchable Shenanigans */
   export let searchTerm = '';
-  $: filteredList = Array.from(currentData.entries())
-    .map(([idx, val]) => ({
-      rank: idx + 1,
-      val
-    }))
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    .filter(({ val }) => {
+  $: filteredList = Array.from(currentData.entries()).map(([idx, val]) => ({
+    rank: idx + 1,
+    val
+  }));
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /*.filter(({ val }) => {
       // every time this has to run, we reset the slice end
       return new RegExp(searchTerm, 'i').test(val.author.username);
-    });
+    });*/
 </script>
 
 <div bind:this={containerElement} class="relative w-full md:h-60 grow md:h-full overflow-y-scroll">
   <div class="w-full">
-    {#each filteredList as rank}
-      <RankItem
-        rank={rank.rank}
-        score={rank.val.elo}
-        username={rank.val.author.username}
-        delta={0}
-        avatarUrl={rank.val.author.avatar}
-        onVisibilityChanged={(visible) => onRankItemVisible(rank.rank, visible)}
-        onHeightChanged={(height) => {
-          maxItemHeight = Math.max(height, maxItemHeight);
-        }}
-      />
+    {#each filteredList as rank (rank.val.author.username)}
+      <div animate:flip>
+        <RankItem
+          rank={rank.rank}
+          score={rank.val.elo}
+          username={rank.val.author.username}
+          delta={0}
+          avatarUrl={rank.val.author.avatar}
+          onVisibilityChanged={(visible) => onRankItemVisible(rank.rank, visible)}
+          onHeightChanged={(height) => {
+            maxItemHeight = Math.max(height, maxItemHeight);
+          }}
+        />
+      </div>
     {/each}
     <div bind:this={tailElement} class="h-[10px] text-center">
       {changesAwaiting ? 'Loading' : 'End of List'}
