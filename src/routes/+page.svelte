@@ -131,34 +131,37 @@
   </defs>
 </svg>
 
-{#if (rankings.get(activeIndex)?.data.size ?? 0) == 0}
-  <div class="w-full h-full flex items-center justify-center">
+{#if (rankings.get(activeIndex)?.data.size ?? 0) < 3}
+  <div class="w-full h-screen flex flex-col items-center justify-center">
     <div class="w-fit h-fit text-center">
       <img
         class="flex-basis"
         alt="neuroSpin"
         src="https://cdn.7tv.app/emote/01HAZ1Y5JR000EY75ATHMFB7XQ/4x.avif"
       />
-      <p>Now Spinning...</p>
     </div>
+    <p>Now Spinning...</p>
+    <p>If this continues to happens, there's probably not enough data for this leaderboard!</p>
   </div>
 {/if}
 
-{#if (rankings.get(activeIndex)?.data.size ?? 0) > 0}
-  <Burger
-    onClick={() => {
+<Burger
+  onClick={() => {
+    menuAppear = !menuAppear;
+  }}
+/>
+
+{#if menuAppear}
+  <Menu
+    itemClicked={(page) => {
+      navigatePage(page);
       menuAppear = !menuAppear;
     }}
+    selectedPage={activeIndex}
   />
-  {#if menuAppear}
-    <Menu
-      itemClicked={(page) => {
-        navigatePage(page);
-        menuAppear = !menuAppear;
-      }}
-      selectedPage={activeIndex}
-    />
-  {/if}
+{/if}
+
+{#if (rankings.get(activeIndex)?.data.size ?? 0) >= 3}
   <LoadableFlexContainer
     onload={() => {
       showRankingsLoading = false;
