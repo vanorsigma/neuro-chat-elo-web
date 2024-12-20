@@ -60,23 +60,27 @@ function subscribeWSUpdates(
   });
 
   rankingCoordinator.setOnChangesMessage(async (changes) => {
-    const authorLookup = new Map();
-    for (const value of changes.changes.values()) {
-      authorLookup.set(value.author_id, await rankingCoordinator.populateAuthor(value.author_id));
-    }
-
+    // extract the existing leaderboard data
+    let cachedLeaderboard = new Map<string, Leaderboard>();
     update((leaderboard) => {
-      for (const [id, value] of changes.changes.entries()) {
-        if (leaderboard.get(changes.leaderboard_name) === undefined) {
-          leaderboard.set(changes.leaderboard_name, { name: changes.leaderboard_name, data: new Map() });
-        }
-
-        leaderboard.get(changes.leaderboard_name)!.data.set(id, {
-          ...value,
-          author: authorLookup.get(value.author_id)
-        });
-      }
+      cachedLeaderboard = leaderboard;
       return leaderboard;
     });
+
+    await Promise.all(Array.from(changes.changes.entries()).map(async ([id, value]) => {
+      if (cachedLeaderboard.get(changes.leaderboard_name) === undefined) {
+        cachedLeaderboard.set(changes.leaderboard_name, { name: changes.leaderboard_name, data: new Map() });
+      }
+
+      cachedLeaderboard.get(changes.leaderboard_name)!.data.set(id, {
+        ...value,
+        author: await rankingCoordinator.populateAuthor(value.author_id)
+      });
+    }));
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    update((_) => {
+      return cachedLeaderboard;
+    })
   });
 }
