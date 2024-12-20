@@ -79,10 +79,13 @@
 
   /* Searchable Shenanigans */
   export let searchTerm = '';
-  $: filteredList = Array.from(currentData.entries()).map(([idx, val]) => ({
-    rank: idx + 1,
-    val
-  }));
+  $: filteredList = Array.from(currentData.entries())
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    .sort(([idxA, _], [idxB, __]) => idxA - idxB)
+    .map(([idx, val]) => ({
+      rank: idx + 1,
+      val
+    }));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   /*.filter(({ val }) => {
       // every time this has to run, we reset the slice end
