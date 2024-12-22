@@ -60,6 +60,10 @@
       0,
       Math.max(minimumAmount, lengthLoaded + maxFitAmount)
     );
+    containerElement.scrollBy({
+      top: -maxItemHeight * 2,
+      behavior: 'instant'
+    });
   }
 
   const tailObserver = new IntersectionObserver((entries) => {
@@ -95,21 +99,23 @@
 
 <div bind:this={containerElement} class="relative w-full md:h-60 grow md:h-full overflow-y-scroll">
   <div class="w-full">
-    {#each filteredList as rank (rank.val.author.username)}
-      <div animate:flip>
-        <RankItem
-          rank={rank.rank}
-          score={rank.val.elo}
-          username={rank.val.author.username}
-          delta={0}
-          avatarUrl={rank.val.author.avatar}
-          onVisibilityChanged={(visible) => onRankItemVisible(rank.rank, visible)}
-          onHeightChanged={(height) => {
-            maxItemHeight = Math.max(height, maxItemHeight);
-          }}
-        />
-      </div>
-    {/each}
+    {#key currentData.size}
+      {#each filteredList as rank (rank.val.author.id)}
+        <div animate:flip>
+          <RankItem
+            rank={rank.rank}
+            score={rank.val.elo}
+            username={rank.val.author.username}
+            delta={0}
+            avatarUrl={rank.val.author.avatar}
+            onVisibilityChanged={(visible) => onRankItemVisible(rank.rank, visible)}
+            onHeightChanged={(height) => {
+              maxItemHeight = Math.max(height, maxItemHeight);
+            }}
+          />
+        </div>
+      {/each}
+    {/key}
     <div bind:this={tailElement} class="h-[10px] text-center">
       {changesAwaiting ? 'Loading' : 'End of List'}
     </div>

@@ -26,7 +26,7 @@ export class RankingCoordinator {
 
   constructor() {
     this.ws = new EloWebSocket();
-    this.cache = new TimeCache(100, 1000 * 60 * 60);
+    this.cache = new TimeCache(20000, 1000 * 60 * 60);
     this.rawStateOnChangeManualAwaiting = false;
     this.onChangeManualAwaiting = writable(false);
   }
