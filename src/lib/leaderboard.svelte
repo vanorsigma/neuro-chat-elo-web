@@ -1,7 +1,6 @@
 <!--Leaderboard -->
 
 <script lang="ts">
-  import { onMount } from 'svelte';
   import RankItem from './rankitem.svelte';
   import { rankingCoordinator, type FullRankingInformation } from './ranks';
   import { flip } from 'svelte/animate';
@@ -17,7 +16,7 @@
 
   const amount = 100;
 
-  onMount(() => {
+  $: {
     rankingCoordinator.changeWindow(
       leaderboardId,
       0,
@@ -25,7 +24,7 @@
       pinnedUsername.length === 0 ? undefined : pinnedUsername,
       platform
     );
-  });
+  }
 
   /* User Pinning Shenanigans */
   export let pinnedUsername = '';
@@ -43,7 +42,7 @@
   );
 
   $: {
-    if (pinnedUserRankItem !== null) {
+    if (pinnedUserRankItem !== null && pinnedUsername.length > 0) {
       setTimeout(() => {
         pinnedUserRankItem?.scrollIntoView({
           behavior: 'smooth',
@@ -57,8 +56,8 @@
 
 <div
   class="relative w-full md:h-60 grow md:h-full overflow-y-scroll"
-  class:overflow-y-scroll={!pinnedUserRankItem}
-  class:overflow-y-hidden={pinnedUserRankItem}
+  class:overflow-y-scroll={!pinnedUsername.length}
+  class:overflow-y-hidden={pinnedUsername.length}
 >
   <div class="w-full">
     {#key currentData.size}

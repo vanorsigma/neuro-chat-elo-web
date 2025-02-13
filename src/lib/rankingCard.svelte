@@ -28,11 +28,11 @@
   }
 
   function onPinButtonClicked() {
-    if (innerPinTextValue.length > 0) {
+    if (innerPinTextValue === pinTextValue) {
       innerPinTextValue = '';
       pinTextValue = '';
     } else {
-      innerPinTextValue = pinTextValue;
+      pinTextValue = innerPinTextValue;
     }
   }
 
