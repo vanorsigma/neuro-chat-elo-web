@@ -44,16 +44,22 @@
 
   $: {
     if (pinnedUserRankItem !== null) {
-      pinnedUserRankItem.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'center'
-      });
+      setTimeout(() => {
+        pinnedUserRankItem?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'center'
+        });
+      }, 100);
     }
   }
 </script>
 
-<div class="relative w-full md:h-60 grow md:h-full overflow-y-scroll">
+<div
+  class="relative w-full md:h-60 grow md:h-full overflow-y-scroll"
+  class:overflow-y-scroll={!pinnedUserRankItem}
+  class:overflow-y-hidden={pinnedUserRankItem}
+>
   <div class="w-full">
     {#key currentData.size}
       {#each filteredList as rank (rank.val.author.id)}
