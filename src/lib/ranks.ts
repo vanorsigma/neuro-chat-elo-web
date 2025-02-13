@@ -1,6 +1,7 @@
 import { writable, type Updater, derived } from 'svelte/store';
 import { type RankingInformation } from './websocket';
 import { RankingCoordinator, type ExpandedAuthorInformation } from './rankingCoordinator';
+import { DeconflictQueue } from './deconflictQueue';
 
 export interface FullRankingInformation {
   author: ExpandedAuthorInformation;
@@ -46,6 +47,7 @@ export const categoryLiveRanks = derived(liveRanks, ($liveRanks) => {
 });
 
 export const rankingCoordinator = new RankingCoordinator();
+export const deconflictQueue = new DeconflictQueue();
 
 function subscribeWSUpdates(
   set: (value: Map<string, Leaderboard>) => void,
@@ -62,11 +64,14 @@ function subscribeWSUpdates(
   rankingCoordinator.setOnChangesMessage(async (changes) => {
     // extract the existing leaderboard data
     let cachedLeaderboard = new Map<string, Leaderboard>();
+    const permit = deconflictQueue.enqueue();
+
     update((leaderboard) => {
       cachedLeaderboard = leaderboard;
       return leaderboard;
     });
 
+    // permit for async conflict resolution i hope
     await Promise.all(Array.from(changes.changes.entries()).map(async ([id, value]) => {
       if (cachedLeaderboard.get(changes.leaderboard_name) === undefined) {
         cachedLeaderboard.set(changes.leaderboard_name, { name: changes.leaderboard_name, data: new Map() });
@@ -77,6 +82,8 @@ function subscribeWSUpdates(
         author: await rankingCoordinator.populateAuthor(value.author_id)
       });
     }));
+
+    await deconflictQueue.dequeue(permit);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update((_) => {
