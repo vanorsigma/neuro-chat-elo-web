@@ -2,7 +2,7 @@ import { PUBLIC_WS_HOST_URL } from '$env/static/public';
 import { writable, type Writable } from 'svelte/store';
 
 export interface RankingAuthorId {
-  platform: string;
+  platform: Platform;
   id: string;
 }
 
@@ -10,6 +10,8 @@ export interface RankingInformation {
   author_id: RankingAuthorId;
   elo: number;
 }
+
+export type Platform = 'twitch' | 'discord' | 'unknown';
 
 function makeChangeData(message: { [key: string]: object }): Map<number, RankingInformation> {
   // assumption: message is a valid ChangeData object
@@ -33,6 +35,7 @@ export interface WebsocketInitializeWindow {
   leaderboard_name: string;
   starting_index: number;
   following_entries: number;
+  following_id?: string;
 }
 
 export interface WebsocketInitializeOutgoing {
@@ -109,13 +112,26 @@ export class EloWebSocket {
     this.onChangesMessage = callback;
   }
 
-  changeWindow(leaderboardName: string, startingIndex: number, followingEntries: number) {
+  changeWindow(leaderboardName: string, startingIndex: number, category: Platform, followingEntries: number, followingId: string | undefined) {
+    let platformObject = undefined;
+    if (followingId) {
+      switch (category) {
+        case 'twitch':
+          platformObject = { 'platform': 'twitch', 'id': followingId };
+          break;
+        case 'discord':
+          platformObject = { 'platform': 'discord', 'id': followingId };
+          break;
+      }
+    }
+
     this.trySend({
       type: 'change_window',
       window: {
         leaderboard_name: leaderboardName,
         starting_index: startingIndex,
-        following_entries: followingEntries
+        following_entries: followingEntries,
+        following_id: platformObject
       }
     } as WebsocketInitializeOutgoing)
   }

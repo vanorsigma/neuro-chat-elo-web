@@ -2,11 +2,16 @@ import { EloWebSocket } from './websocket';
 import axios from 'axios';
 import { PUBLIC_PROFILE_URL } from '$env/static/public';
 import { TimeCache } from './timecache';
-import type { WebsocketChangesMessage, RankingAuthorId, WebsocketInitializeIncoming } from './websocket';
+import type {
+  WebsocketChangesMessage,
+  RankingAuthorId,
+  WebsocketInitializeIncoming,
+  Platform
+} from './websocket';
 import { writable, type Writable } from 'svelte/store';
 
 export interface ExpandedAuthorInformation {
-  platform: string;
+  platform: Platform;
   id: string;
   username: string;
   avatar: string;
@@ -14,6 +19,7 @@ export interface ExpandedAuthorInformation {
 }
 
 interface ProfileAPIResponse {
+  id: string;
   username: string;
   avatar_url: string;
 }
@@ -51,12 +57,41 @@ export class RankingCoordinator {
     return this.ws.getIsOnline();
   }
 
-  changeWindow(leaderboardName: string, startingIndex: number, followingEntries: number, isInit: boolean = false) {
-    if (!isInit) {
-      this.rawStateOnChangeManualAwaiting = true;
-      this.onChangeManualAwaiting.set(true);
+  async usernameToId(
+    username: string,
+    category: Platform
+  ): Promise<string | undefined> {
+    try {
+      const response = await axios(`${PUBLIC_PROFILE_URL}/reverse/${category}/${username}`);
+      const data = response.data as ProfileAPIResponse;
+      return data.id;
+    } catch (error) {
+      console.error('Error fetching profile for username:', username);
+      return undefined;
     }
-    this.ws.changeWindow(leaderboardName, startingIndex, followingEntries);
+  }
+
+  async changeWindow(
+    leaderboardName: string,
+    startingIndex: number,
+    followingEntries: number,
+    followingUsername: string | undefined = undefined,
+    category: Platform = 'unknown'
+  ) {
+    // if (!isInit) {
+    //   this.rawStateOnChangeManualAwaiting = true;
+    //   this.onChangeManualAwaiting.set(true);
+    // }
+
+    this.ws.changeWindow(
+      leaderboardName,
+      startingIndex,
+      category,
+      followingEntries,
+      followingUsername
+        ? await this.usernameToId(followingUsername, category)
+        : undefined
+    );
   }
 
   async populateAuthor(authorId: RankingAuthorId): Promise<ExpandedAuthorInformation> {

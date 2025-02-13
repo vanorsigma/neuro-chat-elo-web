@@ -73,7 +73,7 @@
       value={userSearchTextValue}
     />-->
     {#if rankingInfoLength >= 3}
-      <Leaderboard {leaderboardId} searchTerm={userSearchTextValue} currentData={rankingInfo} />
+      <Leaderboard {leaderboardId} pinnedUsername={userSearchTextValue} currentData={rankingInfo} />
     {/if}
   </div>
 </div>

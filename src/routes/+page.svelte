@@ -15,35 +15,14 @@
     sanitizeString(new URL(window.location.href).searchParams.get('index')) || 'twitch_livestream';
 
   $: {
-    rankingCoordinator.changeWindow(activeIndex, 0, 10, false);
+    // NOTE: required initialization to have /some/ items to populate.
+    rankingCoordinator.changeWindow(activeIndex, 0, 2);
   }
-
-  // let rankings: { [key: string]: LeaderboardInfoWithCategory } = {};
 
   let rankings = new Map<string, Leaderboard>();
   liveRanks.subscribe((value) => {
     rankings = value;
   });
-
-  // function callbackForStore(key: string, value: LeaderboardInfoWithCategory) {
-  //   rankings[key] = value;
-  // }
-
-  // function subscribeStore(
-  //   store: Readable<LeaderboardInfoWithCategory>,
-  //   callback: (value: LeaderboardInfoWithCategory) => void
-  // ) {
-  //   let unsubscribe = store.subscribe(callback);
-  //   onDestroy(() => {
-  //     unsubscribe();
-  //   });
-  // }
-
-  // $: {
-  //   for (let [key, value] of ranksMap.entries()) {
-  //     subscribeStore(value, (v) => callbackForStore(key, v));
-  //   }
-  // }
 
   let menuAppear = false;
 
@@ -132,7 +111,7 @@
 </svg>
 
 {#if (rankings.get(activeIndex)?.data.size ?? 0) < 3}
-  <div class="w-full h-screen flex flex-col items-center justify-center">
+  <div class="w-full h-screen flex flex-col items-center justify-center gap-2">
     <div class="w-fit h-fit text-center">
       <img
         class="flex-basis"
@@ -141,7 +120,14 @@
       />
     </div>
     <p>Now Spinning...</p>
-    <p>If this continues to happens, there's probably not enough data for this leaderboard!</p>
+    <p>If this continues to happens, there might not be enough data.</p>
+    <p>
+      WebSocket Status: <span
+        class:text-green-700={websocketOnline}
+        class:text-red-700={!websocketOnline}
+        >{websocketOnline ? 'Online' : 'Offline (refresh & try again)'}</span
+      >
+    </p>
   </div>
 {/if}
 
