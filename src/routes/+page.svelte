@@ -48,14 +48,15 @@
   });
 
   // Searching shenanigans
-  let userSearchTextValue: string = new URL(window.location.href).searchParams.get('search') || '';
+  const userPinTextKey = 'pin';
+  let userPinValue: string = new URL(window.location.href).searchParams.get(userPinTextKey) || '';
 
   $: {
     const url = new URL(window.location.href);
-    if (userSearchTextValue === undefined || userSearchTextValue === '') {
-      url.searchParams.set('search', '');
+    if (userPinValue === undefined || userPinValue === '') {
+      url.searchParams.set(userPinTextKey, '');
     } else {
-      url.searchParams.set('search', sanitizeString(userSearchTextValue));
+      url.searchParams.set(userPinTextKey, sanitizeString(userPinValue));
     }
     window.history.replaceState({}, '', url.toString());
   }
@@ -160,7 +161,7 @@
         </h1>
         <RankingCard
           leaderboardId={rankings.get(activeIndex)?.name ?? ''}
-          bind:userSearchTextValue
+          bind:pinTextValue={userPinValue}
           rankingInfo={rankings.get(activeIndex)?.data ?? new Map()}
         />
         <p>

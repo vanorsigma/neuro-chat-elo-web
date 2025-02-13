@@ -11,9 +11,11 @@
   export let maxItemHeight: number = 10;
   export let leaderboardId: string;
 
+  let pinnedUserRankItem: HTMLElement | null = null;
+
   $: platform = currentData.get(0)?.author.platform ?? 'unknown';
 
-  const amount = 200;
+  const amount = 100;
 
   onMount(() => {
     rankingCoordinator.changeWindow(
@@ -39,23 +41,50 @@
       return item.val.author.id;
     }
   );
+
+  $: {
+    if (pinnedUserRankItem !== null) {
+      pinnedUserRankItem.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center'
+      });
+    }
+  }
 </script>
 
 <div class="relative w-full md:h-60 grow md:h-full overflow-y-scroll">
   <div class="w-full">
     {#key currentData.size}
       {#each filteredList as rank (rank.val.author.id)}
-        <div animate:flip>
-          <RankItem
-            rank={rank.rank}
-            score={rank.val.elo}
-            username={rank.val.author.username}
-            delta={0}
-            avatarUrl={rank.val.author.avatar}
-            onHeightChanged={(height) => {
-              maxItemHeight = Math.max(height, maxItemHeight);
-            }}
-          />
+        <div bind:this={pinnedUserRankItem} animate:flip>
+          {#if pinnedUsername === rank.val.author.username}
+            <div bind:this={pinnedUserRankItem}>
+              <RankItem
+                rank={rank.rank}
+                score={rank.val.elo}
+                username={rank.val.author.username}
+                delta={0}
+                avatarUrl={rank.val.author.avatar}
+                onHeightChanged={(height) => {
+                  maxItemHeight = Math.max(height, maxItemHeight);
+                }}
+              />
+            </div>
+          {:else}
+            <div>
+              <RankItem
+                rank={rank.rank}
+                score={rank.val.elo}
+                username={rank.val.author.username}
+                delta={0}
+                avatarUrl={rank.val.author.avatar}
+                onHeightChanged={(height) => {
+                  maxItemHeight = Math.max(height, maxItemHeight);
+                }}
+              />
+            </div>
+          {/if}
         </div>
       {/each}
     {/key}

@@ -7,9 +7,11 @@
 
   export let leaderboardId: string;
   export let rankingInfo: Map<number, FullRankingInformation>;
-  export let userSearchTextValue: string;
+  export let pinTextValue: string;
+  let innerPinTextValue: string = '';
   var windowWidth = window.innerWidth;
   $: rankingInfoLength = rankingInfo.size;
+  $: platform = rankingInfo.get(0)?.author.platform ?? 'unknown';
 
   let topUsers: User[];
 
@@ -25,13 +27,8 @@
       }));
   }
 
-  let currentTimeout: number | undefined;
-  function onSearchTextValueInput(e: Event & { currentTarget: EventTarget & HTMLInputElement }) {
-    clearTimeout(currentTimeout);
-    currentTimeout = setTimeout(() => {
-      // NOTE: I know for a fact that value exists in the target
-      userSearchTextValue = (e.target as unknown as { value: string })?.value;
-    }, 200) as unknown as number;
+  function onPinButtonClicked() {
+    pinTextValue = innerPinTextValue;
   }
 
   function onWindowResize() {
@@ -40,6 +37,7 @@
 
   onMount(() => {
     window.addEventListener('resize', onWindowResize);
+    innerPinTextValue = pinTextValue;
   });
 
   onDestroy(() => {
@@ -64,16 +62,20 @@
     class="bg-chat rounded-xl flex flex-col items-center max-h-[70vh] md:max-h-[90%] flex-0 p-5 w-full md:w-[40%] min-h-0"
   >
     <h1 class="text-3xl">Leaderboard</h1>
-    <!--<input
-      class="md:self-end m-2"
-      type="text"
-      placeholder="Search username..."
-      alt="Username"
-      on:input={(e) => onSearchTextValueInput(e)}
-      value={userSearchTextValue}
-    />-->
+    {#if platform !== 'unknown'}
+      <div class="flex flex-row">
+        <input
+          class="md:self-end m-2"
+          type="text"
+          placeholder="Pin username..."
+          alt="Username"
+          bind:value={innerPinTextValue}
+        />
+        <button on:click={onPinButtonClicked} class="bg-neuro px-3 rounded">Pin</button>
+      </div>
+    {/if}
     {#if rankingInfoLength >= 3}
-      <Leaderboard {leaderboardId} pinnedUsername={userSearchTextValue} currentData={rankingInfo} />
+      <Leaderboard {leaderboardId} pinnedUsername={pinTextValue} currentData={rankingInfo} />
     {/if}
   </div>
 </div>
