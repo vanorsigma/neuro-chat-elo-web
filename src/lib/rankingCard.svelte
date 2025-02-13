@@ -28,7 +28,12 @@
   }
 
   function onPinButtonClicked() {
-    pinTextValue = innerPinTextValue;
+    if (innerPinTextValue.length > 0) {
+      innerPinTextValue = '';
+      pinTextValue = '';
+    } else {
+      innerPinTextValue = pinTextValue;
+    }
   }
 
   function onWindowResize() {
@@ -69,10 +74,16 @@
           type="text"
           placeholder="Pin username..."
           alt="Username"
+          disabled={pinTextValue.length > 0}
           bind:value={innerPinTextValue}
         />
-        <button on:click={onPinButtonClicked} class="bg-neuro px-3 rounded">Pin</button>
+        <button on:click={onPinButtonClicked} class="bg-neuro px-3 rounded"
+          >{pinTextValue.length > 0 ? 'Unpin' : 'Pin'}</button
+        >
       </div>
+      {#if pinTextValue.length > 0}
+        <p class="text-xs">Pinned. If you'd like to scroll again, please clear the pin.</p>
+      {/if}
     {/if}
     {#if rankingInfoLength >= 3}
       <Leaderboard {leaderboardId} pinnedUsername={pinTextValue} currentData={rankingInfo} />
