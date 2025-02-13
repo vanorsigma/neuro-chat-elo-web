@@ -32,7 +32,20 @@ export const categoryMapping = new Map([
   ['partner', 'Twitch'],
   ['non-vips', 'Twitch'],
   ['overall', 'Twitch'],
+  ['subathon_2_discord_cookies', 'Archived'],
+  ['subathon_2_bits', 'Archived'],
+  ['subathon_2_emote', 'Archived'],
+  ['subathon_2_overall', 'Archived'],
+  ['subathon_2_twitch_livestream', 'Archived'],
+  ['subathon_2_non - vips', 'Archived'],
+  ['subathon_2_subs', 'Archived'],
+  ['subathon_2_partner', 'Archived'],
+  ['subathon_2_raid', 'Archived'],
+  ['subathon_2_discord_livestream', 'Archived'],
+  ['subathon_2_message_count', 'Archived'],
+  ['subathon_2_non-vips', 'Archived'],
   ['discord_livestream', 'Discord'],
+  ['discord_cookies', 'Discord']
 ]);
 
 export const categoryLiveRanks = derived(liveRanks, ($liveRanks) => {
@@ -72,22 +85,27 @@ function subscribeWSUpdates(
     });
 
     // permit for async conflict resolution i hope
-    await Promise.all(Array.from(changes.changes.entries()).map(async ([id, value]) => {
-      if (cachedLeaderboard.get(changes.leaderboard_name) === undefined) {
-        cachedLeaderboard.set(changes.leaderboard_name, { name: changes.leaderboard_name, data: new Map() });
-      }
+    await Promise.all(
+      Array.from(changes.changes.entries()).map(async ([id, value]) => {
+        if (cachedLeaderboard.get(changes.leaderboard_name) === undefined) {
+          cachedLeaderboard.set(changes.leaderboard_name, {
+            name: changes.leaderboard_name,
+            data: new Map()
+          });
+        }
 
-      cachedLeaderboard.get(changes.leaderboard_name)!.data.set(id, {
-        ...value,
-        author: await rankingCoordinator.populateAuthor(value.author_id)
-      });
-    }));
+        cachedLeaderboard.get(changes.leaderboard_name)!.data.set(id, {
+          ...value,
+          author: await rankingCoordinator.populateAuthor(value.author_id)
+        });
+      })
+    );
 
     await deconflictQueue.dequeue(permit);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update((_) => {
       return cachedLeaderboard;
-    })
+    });
   });
 }
