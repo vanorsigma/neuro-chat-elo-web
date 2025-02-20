@@ -10,7 +10,11 @@
   export let maxItemHeight: number = 10;
   export let leaderboardId: string;
 
+  // stub
+  interface Timeout {}
+
   let pinnedUserRankItem: HTMLElement | null = null;
+  let scrollTimeout: Timeout | null = null;
 
   $: platform = currentData.get(0)?.author.platform ?? 'unknown';
 
@@ -43,7 +47,12 @@
 
   $: {
     if (pinnedUserRankItem !== null && pinnedUsername.length > 0) {
-      setTimeout(() => {
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout as number);
+      }
+
+      scrollTimeout = setTimeout(() => {
+        console.log(pinnedUserRankItem);
         pinnedUserRankItem?.scrollIntoView({
           behavior: 'smooth',
           block: 'center',
@@ -62,7 +71,7 @@
   <div class="w-full">
     {#key currentData.size}
       {#each filteredList as rank (rank.val.author.id)}
-        <div bind:this={pinnedUserRankItem} animate:flip>
+        <div animate:flip>
           {#if pinnedUsername === rank.val.author.username}
             <div bind:this={pinnedUserRankItem}>
               <RankItem
