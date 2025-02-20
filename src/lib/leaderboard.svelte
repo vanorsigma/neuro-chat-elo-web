@@ -58,7 +58,7 @@
           block: 'center',
           inline: 'center'
         });
-      }, 100);
+      }, 1000);
     }
   }
 </script>
